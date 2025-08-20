@@ -40,5 +40,5 @@ pnpm-debug.log*
 /.idea/*
 
 package-lock.json
-syncYupoo.ts
+/scripts/syncYupoo.ts
 tsconfig.scripts.json
