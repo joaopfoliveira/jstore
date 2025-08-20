@@ -36,4 +36,5 @@ pnpm-debug.log*
 !.vscode/extensions.json
 
 #Intellij
-.idea/
+./idea
+*.iml
