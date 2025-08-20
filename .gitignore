@@ -37,4 +37,6 @@ pnpm-debug.log*
 
 #Intellij
 *.iml
-/.idea/
+/.idea/*
+
+package-lock.json
