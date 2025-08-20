@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -18,6 +18,7 @@ type Product = {
 export default function CatalogPage() {
     const [query, setQuery] = useState("");
     const debouncedQuery = useDebounce(query, 300);
+    const [totalCount, setTotalCount] = useState(0);
 
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
@@ -37,25 +38,36 @@ export default function CatalogPage() {
             setLoading(true);
             setErrorMsg(null);
 
-            let q = supabase
-                .from("products")
-                .select("*")
-                .order("created_at", { ascending: false })
-                .limit(200); // fetch a reasonable batch to paginate on the client
+            const from = (page - 1) * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
 
+            let q;
             if (debouncedQuery.trim() !== "") {
-                // Full-text search (preferred)
-                q = q.textSearch("search_vector", debouncedQuery, { type: "websearch" });
-
-                // Fallback if you haven’t created search_vector yet:
-                // q = q.ilike("name", `%${debouncedQuery}%`);
+                q = supabase
+                    .from("products")
+                    .select("*", { count: "exact" })
+                    .ilike("name", `%${debouncedQuery}%`)
+                    .order("created_at", { ascending: false })
+                    .range(from, to);
+            } else {
+                q = supabase
+                    .from("products")
+                    .select("*", { count: "exact" })
+                    .order("created_at", { ascending: false })
+                    .range(from, to);
             }
 
-            const { data, error } = await q;
+            const { data, error, count } = await q;
+
+            console.log(
+                "DEBUG page", page, "from", from, "to", to,
+                "count", count, "rows", data?.length
+            );
 
             if (!cancelled) {
                 if (error) setErrorMsg(error.message);
                 setProducts(data || []);
+                setTotalCount(count || 0);
                 setLoading(false);
             }
         };
@@ -64,26 +76,21 @@ export default function CatalogPage() {
         return () => {
             cancelled = true;
         };
-    }, [debouncedQuery]);
+    }, [debouncedQuery, page]);
 
-    const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
-    const pageSafe = Math.min(page, totalPages);
-    const pageItems = useMemo(() => {
-        const start = (pageSafe - 1) * PAGE_SIZE;
-        return products.slice(start, start + PAGE_SIZE);
-    }, [products, pageSafe]);
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
     const clearSearch = () => setQuery("");
 
     return (
         <div className="space-y-4">
-            <h1 className="h1">Catálogo</h1>
+            <h1 className="h1">Catalog</h1>
 
             <div className="flex gap-2 items-center">
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Pesquisar (ex: Nike Pegasus)"
+                    placeholder="Search (e.g.: Real Madrid retro)"
                     className="input flex-1"
                 />
                 {query && (
@@ -91,20 +98,20 @@ export default function CatalogPage() {
                         type="button"
                         onClick={clearSearch}
                         className="btn"
-                        aria-label="Limpar pesquisa"
-                        title="Limpar pesquisa"
+                        aria-label="Clear search"
+                        title="Clear search"
                     >
-                        Limpar
+                        Clear
                     </button>
                 )}
             </div>
 
-            {loading && <p className="small">A procurar…</p>}
-            {errorMsg && <p className="small text-red-400">Erro: {errorMsg}</p>}
+            {loading && <p className="small">Searching…</p>}
+            {errorMsg && <p className="small text-red-400">Error: {errorMsg}</p>}
 
             {/* Results */}
             <div className="grid grid-cols-1 gap-4">
-                {pageItems.map((p) => {
+                {products.map((p) => {
                     const proxied = `/api/img?url=${encodeURIComponent(p.image_url!)}`;
 
                     return (
@@ -127,13 +134,13 @@ export default function CatalogPage() {
             </div>
 
             {!loading && products.length === 0 && (
-                <p className="small">Sem resultados.</p>
+                <p className="small">No results.</p>
             )}
 
             {/* Pagination */}
             {products.length > 0 && (
                 <Pagination
-                    page={pageSafe}
+                    page={page}
                     totalPages={totalPages}
                     onPageChange={setPage}
                 />
@@ -198,7 +205,7 @@ function Pagination({
                 onClick={() => onPageChange(Math.max(1, page - 1))}
                 disabled={page === 1}
             >
-                Anterior
+                Previous
             </button>
 
             <div className="flex items-center gap-1">
@@ -222,7 +229,7 @@ function Pagination({
                 onClick={() => onPageChange(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
             >
-                Seguinte
+                Next
             </button>
         </div>
     );
