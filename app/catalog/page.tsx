@@ -84,13 +84,13 @@ export default function CatalogPage() {
 
     return (
         <div className="space-y-4">
-            <h1 className="h1">Catalog</h1>
+
 
             <div className="flex gap-2 items-center">
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search (e.g.: Real Madrid retro)"
+                    placeholder="Search (e.g.: Real Madrid 14/15)"
                     className="input flex-1"
                 />
                 {query && (
