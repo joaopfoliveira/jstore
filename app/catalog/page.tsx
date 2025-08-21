@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useCart } from "@/hooks/useCart";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -81,6 +82,7 @@ export default function CatalogPage() {
     const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
     const clearSearch = () => setQuery("");
+    const { addItem } = useCart();
 
     return (
         <div className="space-y-4">
@@ -127,7 +129,21 @@ export default function CatalogPage() {
                             )}
                             <div className="mt-3">
                                 <div className="h2">{p.name}</div>
+                                <button
+                                    className="btn btn-primary mt-2"
+                                    onClick={() =>
+                                        addItem({
+                                            product_id: p.id.toString(),
+                                            product_name: p.name,
+                                            size: "M",   // default, can ask later
+                                            print: false,
+                                        })
+                                    }
+                                >
+                                    Add to Cart
+                                </button>
                             </div>
+
                         </div>
                     );
                 })}

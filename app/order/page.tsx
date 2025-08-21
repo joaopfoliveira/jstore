@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useCart } from "@/hooks/useCart";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -82,9 +83,27 @@ export default function OrderPage() {
             setPhone("");
         }
     };
+    const { removeItem, clear } = useCart();
 
     return (
         <div className="space-y-6">
+            <h1 className="h1">Checkout</h1>
+            {items.length === 0 ? (
+                <p>No items added yet</p>
+            ) : (
+                <ul>
+                    {items.map((it, i) => (
+                        <li key={i}>
+                            {it.product_name} ({it.size})
+                            <button onClick={() => removeItem(i)}>Remover</button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+            {/* Form fields: nome, telefone, etc */}
+            <button className="btn btn-primary" onClick={clear}>
+                Checkout
+            </button>
             <h1 className="h1">Checkout</h1>
 
             {/* Escolha do modo */}
