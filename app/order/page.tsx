@@ -1,233 +1,322 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { useCart } from "@/hooks/useCart";
+import { useCart } from "@/app/context/CartContext";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-type CatalogItem = {
-    id: string;
-    name: string;
-};
-
 export default function OrderPage() {
-    const [mode, setMode] = useState<"catalog" | "custom">("catalog");
+    const { items, updateItem, removeItem, clear } = useCart();
     const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
-    const [items, setItems] = useState<
-        {
-            product_id: string;
-            product_name: string;
-            size: string;
-            print: boolean;
-            print_name?: string;
-            print_number?: string;
-        }[]
-    >([]);
-    const [customNotes, setCustomNotes] = useState("");
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState("");
+    const [orderCode, setOrderCode] = useState("");
 
-    // ⚠️ Para já, produtos fake. Mais tarde substituímos pelo fetch real do catálogo
-    const fakeProducts: CatalogItem[] = [
-        { id: "1", name: "Nike Pegasus" },
-        { id: "2", name: "Adidas Predator" },
-    ];
 
-    const addItem = (p: CatalogItem) => {
-        setItems([
-            ...items,
-            { product_id: p.id, product_name: p.name, size: "M", print: false },
-        ]);
+
+    // Function to handle tracking navigation
+    const handleTrackOrder = () => {
+        // Clear cart when user goes to track their order
+        clear();
+        window.location.href = '/track';
     };
 
-    const updateItem = (
-        idx: number,
-        changes: Partial<typeof items[number]>
-    ) => {
-        setItems((prev) =>
-            prev.map((it, i) => (i === idx ? { ...it, ...changes } : it))
-        );
+    // Function to handle cart clearing with confirmation
+    const handleClearCart = () => {
+        if (confirm("Are you sure you want to clear your cart? This action cannot be undone.")) {
+            clear();
+            setMsg("");
+            setOrderCode("");
+        }
+    };
+
+    // Generate unique order code based on phone and products
+    const generateOrderCode = (phone: string, items: any[]) => {
+        const phoneDigits = phone.replace(/\D/g, '').slice(-4); // Last 4 digits
+        const itemsHash = items.map(i => i.product_id).join('').slice(0, 4);
+        const timestamp = Date.now().toString().slice(-4); // Last 4 digits of timestamp
+        return `JS${phoneDigits}${itemsHash}${timestamp}`.toUpperCase().slice(0, 12);
+    };
+
+    // Send order confirmation email
+    const sendOrderConfirmationEmail = async (email: string, customerName: string, orderCode: string, items: any[]) => {
+        const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                customerName,
+                orderCode,
+                items
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to send email');
+        }
+
+        return response.json();
     };
 
     const submitOrder = async () => {
-        if (!name || !phone) {
-            setMsg("❌ Nome e telefone são obrigatórios.");
+        if (!name || !email || !phone) {
+            setMsg("❌ Name, email, and phone are required.");
+            return;
+        }
+
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setMsg("❌ Please enter a valid email address.");
+            return;
+        }
+
+        if (items.length === 0) {
+            setMsg("❌ Cart is empty. Add some items first.");
             return;
         }
 
         setLoading(true);
         setMsg("");
+        setOrderCode(""); // Clear any previous order code
 
-        const { error } = await supabase.from("orders").insert({
-            customer_name: name,
-            customer_phone: phone,
-            type: mode,
-            items: mode === "catalog" ? items : null,
-            notes: mode === "custom" ? customNotes : null,
-        });
+        try {
+            const orderCode = generateOrderCode(phone, items);
+            
+            const { error } = await supabase.from("orders").insert({
+                customer_name: name,
+                customer_email: email,
+                customer_phone: phone,
+                type: "catalog",
+                items: items,
+                notes: null,
+                order_code: orderCode,
+            });
 
-        setLoading(false);
-
-        if (error) {
-            setMsg("❌ Erro: " + error.message);
-        } else {
-            setMsg("✅ Pedido enviado com sucesso!");
-            setItems([]);
-            setCustomNotes("");
-            setName("");
-            setPhone("");
+            if (error) {
+                setMsg("❌ Error: " + error.message);
+                setOrderCode("");
+            } else {
+                // Send email with order code
+                try {
+                    await sendOrderConfirmationEmail(email, name, orderCode, items);
+                } catch (emailError) {
+                    console.error("Email sending failed:", emailError);
+                    // Don't fail the order if email fails
+                }
+                
+                setMsg("✅ Order submitted successfully! Check your email for the order code.");
+                setOrderCode(orderCode);
+                
+                // Clear only the form fields, keep the cart and order code visible
+                setName("");
+                setEmail("");
+                setPhone("");
+                // Cart and order code will remain visible until user navigates away
+            }
+        } catch (err) {
+            setMsg("❌ Unexpected error occurred.");
+            setOrderCode("");
+            console.error("Order submission error:", err);
+        } finally {
+            setLoading(false);
         }
     };
-    const { removeItem, clear } = useCart();
 
     return (
         <div className="space-y-6">
-            <h1 className="h1">Checkout</h1>
+            <h1 className="h1">Shopping Cart</h1>
+
             {items.length === 0 ? (
-                <p>No items added yet</p>
+                <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">Your cart is empty</p>
+                    <a href="/catalog" className="btn btn-primary">
+                        Continue Shopping
+                    </a>
+                </div>
             ) : (
-                <ul>
-                    {items.map((it, i) => (
-                        <li key={i}>
-                            {it.product_name} ({it.size})
-                            <button onClick={() => removeItem(i)}>Remover</button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-            {/* Form fields: nome, telefone, etc */}
-            <button className="btn btn-primary" onClick={clear}>
-                Checkout
-            </button>
-            <h1 className="h1">Checkout</h1>
-
-            {/* Escolha do modo */}
-            <div className="flex gap-4">
-                <button
-                    className={`btn ${mode === "catalog" ? "btn-primary" : ""}`}
-                    onClick={() => setMode("catalog")}
-                >
-                    Do Catálogo
-                </button>
-                <button
-                    className={`btn ${mode === "custom" ? "btn-primary" : ""}`}
-                    onClick={() => setMode("custom")}
-                >
-                    Custom
-                </button>
-            </div>
-
-            {/* Dados do cliente */}
-            <div className="space-y-4">
-                <input
-                    className="input w-full"
-                    placeholder="Nome"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                />
-                <input
-                    className="input w-full"
-                    placeholder="Telefone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                />
-            </div>
-
-            {/* Modo Catálogo */}
-            {mode === "catalog" ? (
-                <div className="space-y-4">
-                    <h2 className="h2">Selecionar Produtos</h2>
-                    <div className="flex flex-wrap gap-2">
-                        {fakeProducts.map((p) => (
-                            <button key={p.id} className="btn" onClick={() => addItem(p)}>
-                                + {p.name}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="space-y-2">
-                        {items.map((it, idx) => (
-                            <div key={idx} className="card p-3 space-y-2">
-                                <div className="flex gap-3 items-center">
-                                    <span className="font-bold flex-1">{it.product_name}</span>
-
-                                    <select
-                                        value={it.size}
-                                        onChange={(e) =>
-                                            updateItem(idx, { size: e.target.value })
-                                        }
-                                        className="input"
+                <>
+                    {/* Cart Items */}
+                    <div className="space-y-3">
+                        <h2 className="h2">Cart Items ({items.length})</h2>
+                        {items.map((item, idx) => (
+                            <div key={idx} className="card p-4 space-y-3">
+                                <div className="flex gap-3 items-start">
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-lg">{item.product_name}</h3>
+                                        <p className="text-sm text-gray-600">
+                                            Size: {item.size} | Quantity: {item.quantity || 1}
+                                        </p>
+                                        {item.print && (
+                                            <p className="text-sm text-blue-600">
+                                                Print: {item.print_name || "No name"} 
+                                                {item.print_number && ` #${item.print_number}`}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => removeItem(idx)}
+                                        className="btn bg-red-500 text-white hover:bg-red-600"
                                     >
-                                        <option>S</option>
-                                        <option>M</option>
-                                        <option>L</option>
-                                        <option>XL</option>
-                                    </select>
-
-                                    <label className="flex items-center gap-1">
-                                        <input
-                                            type="checkbox"
-                                            checked={it.print}
-                                            onChange={(e) =>
-                                                updateItem(idx, { print: e.target.checked })
-                                            }
-                                        />
-                                        Print
-                                    </label>
+                                        Remove
+                                    </button>
                                 </div>
 
-                                {it.print && (
-                                    <div className="grid grid-cols-2 gap-2">
+                                {/* Item customization */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Size</label>
+                                        <select
+                                            value={item.size}
+                                            onChange={(e) => updateItem(idx, { size: e.target.value })}
+                                            className="input w-full"
+                                        >
+                                            <option value="S">S</option>
+                                            <option value="M">M</option>
+                                            <option value="L">L</option>
+                                            <option value="XL">XL</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Quantity</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            value={item.quantity || 1}
+                                            onChange={(e) => updateItem(idx, { quantity: parseInt(e.target.value) || 1 })}
+                                            className="input w-full"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={item.print}
+                                                onChange={(e) => updateItem(idx, { print: e.target.checked })}
+                                            />
+                                            <span className="text-sm font-medium">Add Print</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {item.print && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         <input
                                             type="text"
-                                            placeholder="Nome na camisola"
-                                            className="input"
-                                            value={it.print_name || ""}
-                                            onChange={(e) =>
-                                                updateItem(idx, { print_name: e.target.value })
-                                            }
+                                            placeholder="Name on jersey"
+                                            className="input w-full"
+                                            value={item.print_name || ""}
+                                            onChange={(e) => updateItem(idx, { print_name: e.target.value })}
                                         />
                                         <input
                                             type="text"
-                                            placeholder="Número"
-                                            className="input"
-                                            value={it.print_number || ""}
-                                            onChange={(e) =>
-                                                updateItem(idx, { print_number: e.target.value })
-                                            }
+                                            placeholder="Number"
+                                            className="input w-full"
+                                            value={item.print_number || ""}
+                                            onChange={(e) => updateItem(idx, { print_number: e.target.value })}
                                         />
                                     </div>
                                 )}
                             </div>
                         ))}
                     </div>
-                </div>
-            ) : (
-                // Modo Custom
-                <textarea
-                    className="input w-full"
-                    placeholder="Descreve o teu pedido"
-                    rows={4}
-                    value={customNotes}
-                    onChange={(e) => setCustomNotes(e.target.value)}
-                />
+
+                    {/* Customer Information */}
+                    <div className="space-y-4">
+                        <h2 className="h2">Customer Information</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input
+                                className="input w-full"
+                                placeholder="Full Name *"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
+                            />
+                            <input
+                                className="input w-full"
+                                type="email"
+                                placeholder="Email Address *"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            <input
+                                className="input w-full"
+                                placeholder="Phone Number *"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4 border-t">
+                        <button
+                            className="btn bg-gray-500 text-white hover:bg-gray-600"
+                            onClick={clear}
+                            disabled={loading}
+                        >
+                            Clear Cart
+                        </button>
+                        <button
+                            className="btn btn-primary flex-1"
+                            onClick={submitOrder}
+                            disabled={loading}
+                        >
+                            {loading ? "Processing..." : "Checkout"}
+                        </button>
+                    </div>
+
+                    {msg && (
+                        <div className={`p-4 rounded-lg ${msg.includes("✅") ? "bg-green-100 border border-green-300" : "bg-red-100 border border-red-300"}`}>
+                            <div className={`${msg.includes("✅") ? "text-green-800" : "text-red-800"}`}>
+                                {msg}
+                            </div>
+                            {orderCode && (
+                                <div className="mt-4 space-y-3">
+                                    <div className="bg-white p-3 rounded border">
+                                        <p className="text-sm text-gray-600 mb-1">Your Order Code:</p>
+                                        <p className="font-mono text-xl font-bold text-blue-600">{orderCode}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Save this code to track your order</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(orderCode)}
+                                            className="btn text-sm px-3 py-1"
+                                        >
+                                            📋 Copy Code
+                                        </button>
+                                                                                <button
+                                            onClick={handleTrackOrder}
+                                            className="btn btn-primary text-sm px-3 py-1"
+                                        >
+                                            🔍 Track Order
+                                        </button>
+                                        <button
+                                            onClick={handleClearCart}
+                                            className="btn text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300"
+                                        >
+                                            🗑️ Clear Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
             )}
-
-            {/* Botão Submit */}
-            <button
-                className="btn btn-primary"
-                onClick={submitOrder}
-                disabled={loading}
-            >
-                {loading ? "A enviar..." : "Enviar Pedido"}
-            </button>
-
-            {msg && <p>{msg}</p>}
         </div>
     );
 }
