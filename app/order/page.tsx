@@ -137,6 +137,44 @@ export default function OrderPage() {
         <div className="space-y-6">
             <h1 className="h1">Shopping Cart</h1>
 
+            {/* Order Confirmation - Always visible when there's a message */}
+            {msg && (
+                <div className={`p-4 rounded-lg ${msg.includes("✅") ? "bg-green-100 border border-green-300" : "bg-red-100 border border-red-300"}`}>
+                    <div className={`${msg.includes("✅") ? "text-green-800" : "text-red-800"}`}>
+                        {msg}
+                    </div>
+                    {orderCode && (
+                        <div className="mt-4 space-y-3">
+                            <div className="bg-white p-3 rounded border">
+                                <p className="text-sm text-gray-600 mb-1">Your Order Code:</p>
+                                <p className="font-mono text-xl font-bold text-blue-600">{orderCode}</p>
+                                <p className="text-xs text-gray-500 mt-1">Save this code to track your order</p>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(orderCode)}
+                                    className="btn text-sm px-3 py-1"
+                                >
+                                    📋 Copy Code
+                                </button>
+                                <a
+                                    href={`/track?code=${orderCode}`}
+                                    className="btn btn-primary text-sm px-3 py-1"
+                                >
+                                    🔍 Track Order
+                                </a>
+                                <a
+                                    href="/catalog"
+                                    className="btn bg-green-600 text-white hover:bg-green-700 text-sm px-3 py-1"
+                                >
+                                    🛍️ Continue Shopping
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {items.length === 0 ? (
                 <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">Your cart is empty</p>
@@ -308,42 +346,7 @@ export default function OrderPage() {
                         </button>
                     </div>
 
-                    {msg && (
-                        <div className={`p-4 rounded-lg ${msg.includes("✅") ? "bg-green-100 border border-green-300" : "bg-red-100 border border-red-300"}`}>
-                            <div className={`${msg.includes("✅") ? "text-green-800" : "text-red-800"}`}>
-                                {msg}
-                            </div>
-                            {orderCode && (
-                                <div className="mt-4 space-y-3">
-                                    <div className="bg-white p-3 rounded border">
-                                        <p className="text-sm text-gray-600 mb-1">Your Order Code:</p>
-                                        <p className="font-mono text-xl font-bold text-blue-600">{orderCode}</p>
-                                        <p className="text-xs text-gray-500 mt-1">Save this code to track your order</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText(orderCode)}
-                                            className="btn text-sm px-3 py-1"
-                                        >
-                                            📋 Copy Code
-                                        </button>
-                                                                                <button
-                                            onClick={handleTrackOrder}
-                                            className="btn btn-primary text-sm px-3 py-1"
-                                        >
-                                            🔍 Track Order
-                                        </button>
-                                        <button
-                                            onClick={handleClearCart}
-                                            className="btn text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300"
-                                        >
-                                            🗑️ Clear Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+
                 </>
             )}
         </div>
