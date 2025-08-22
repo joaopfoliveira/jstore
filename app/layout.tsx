@@ -19,7 +19,7 @@ export const metadata = {
         title: "JPlus",
         description: "Discover high-quality sports merchandise and premium products. Custom printing, fast delivery, and custom product requests.",
         url: "/",
-        siteName: "JPlus Sports",
+        siteName: "JPlus",
         type: "website",
         locale: "pt_PT",
         images: [
