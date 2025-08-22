@@ -287,10 +287,7 @@ function TrackOrderContent() {
                         </p>
                         <div className="flex gap-4 flex-wrap">
                             <span className="text-sm bg-gray-800 text-white px-3 py-2 rounded border">
-                                📧 support@jstore.com
-                            </span>
-                            <span className="text-sm bg-gray-800 text-white px-3 py-2 rounded border">
-                                📞 +351 XXX XXX XXX
+                                📧 jplus-support@gmail.com
                             </span>
                         </div>
                     </div>

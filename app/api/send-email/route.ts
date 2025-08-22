@@ -36,7 +36,7 @@ You can track your order anytime using your order code at: ${process.env.NEXT_PU
 We will contact you soon to confirm delivery details.
 
 Best regards,
-JStore Team
+JPlus Team
 🏅 JPlus
         `.trim();
 

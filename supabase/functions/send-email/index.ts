@@ -31,10 +31,10 @@ serve(async (req) => {
     ).join('\n')
 
     // Create email content
-    const subject = `JStore Order Confirmation - ${orderCode}`
+    const subject = `JPlus Order Confirmation - ${orderCode}`
     const emailBody = `Hello ${customerName},
 
-Thank you for your order with JStore! 🏆
+Thank you for your order with JPlus! 🏆
 
 Your Order Code: ${orderCode}
 
@@ -46,7 +46,7 @@ You can track your order anytime using your order code at: https://your-domain.c
 We will contact you soon to confirm delivery details.
 
 Best regards,
-JStore Team
+JPlus Team
 🏅 JPlus`
 
     // Send email using Resend
@@ -70,7 +70,7 @@ JStore Team
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'JStore <onboarding@resend.dev>', // Resend sandbox domain for testing
+        from: 'JPlus <onboarding@resend.dev>', // Resend sandbox domain for testing
         to: [email],
         subject: subject,
         text: emailBody,
