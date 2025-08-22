@@ -47,7 +47,7 @@ We will contact you soon to confirm delivery details.
 
 Best regards,
 JStore Team
-⚽ Premium Football Jerseys`
+🏅 JPlus`
 
     // Send email using Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')

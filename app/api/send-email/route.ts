@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         const emailBody = `
 Hello ${customerName},
 
-Thank you for your order with JStore! 🏆
+Thank you for your order with Jplus! 🏆
 
 Your Order Code: ${orderCode}
 
@@ -37,7 +37,7 @@ We will contact you soon to confirm delivery details.
 
 Best regards,
 JStore Team
-⚽ Premium Football Jerseys
+🏅 JPlus
         `.trim();
 
         // Use Supabase Edge Function for real email sending
