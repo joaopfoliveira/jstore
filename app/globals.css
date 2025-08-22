@@ -3,14 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0b0b0b;
-  --card: #111111;
-  --muted: #999999;
+  /* JPlus Brand Colors */
+  --jplus-blue: #4A90E2;
+  --jplus-orange: #FF6B35;
+  --jplus-beige: #FAF9F7;
+  --jplus-light-beige: #F7F6F4;
+  --jplus-dark-blue: #2E5BBA;
+  --jplus-dark-orange: #E55A2B;
+  
+  /* App Colors */
+  --bg: var(--jplus-beige);
+  --card: white;
+  --muted: #8B7355;
+  --text-primary: #2D2A26;
+  --text-secondary: #5D5A54;
 }
 
 body {
-  color: #f5f5f5;
+  color: var(--text-primary);
   background: var(--bg);
+  min-height: 100vh;
 }
 
 .container {
@@ -18,27 +30,42 @@ body {
 }
 
 .card {
-  @apply rounded-2xl bg-[var(--card)] p-4 shadow;
+  @apply rounded-2xl bg-[var(--card)] p-4 shadow-lg border border-orange-100;
 }
 .btn {
-  @apply rounded-2xl px-4 py-2 font-medium;
+  @apply rounded-2xl px-4 py-2 font-medium transition-all duration-200;
 }
 .btn-primary {
-  @apply bg-white text-black hover:bg-gray-200;
+  background: var(--jplus-blue);
+  color: white;
+  @apply hover:opacity-90 shadow-md;
 }
 .btn-success {
-  @apply bg-green-500 text-white hover:bg-green-600;
+  background: var(--jplus-orange);
+  color: white;
+  @apply hover:opacity-90 shadow-md;
 }
 .input {
-  @apply w-full rounded-2xl bg-transparent border border-gray-700 px-3 py-2 outline-none;
+  @apply w-full rounded-2xl bg-white border-2 border-orange-200 px-4 py-3 outline-none focus:border-blue-400 transition-colors;
+  color: var(--text-primary);
 }
 .label {
-  @apply text-sm text-[var(--muted)];
+  @apply text-sm font-medium;
+  color: var(--text-secondary);
 }
 .list-item {
-  @apply border-b border-gray-800 py-3;
+  @apply border-b border-orange-100 py-3;
 }
-.h1 { @apply text-2xl font-bold; }
-.h2 { @apply text-xl font-semibold; }
-.small { @apply text-sm text-[var(--muted)]; }
-.link { @apply underline; }
+.h1 { 
+  @apply text-2xl font-bold;
+  color: var(--text-primary);
+}
+.h2 { 
+  @apply text-xl font-semibold;
+  color: var(--text-primary);
+}
+.small { 
+  @apply text-sm;
+  color: var(--muted);
+}
+.link { @apply underline text-blue-600 hover:text-blue-800; }

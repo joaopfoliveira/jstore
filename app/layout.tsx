@@ -6,6 +6,9 @@ import ClientHeader from "./ClientHeader";
 export const metadata = {
     title: "JStore - Football Jerseys Store",
     description: "Discover high-quality football jerseys from top clubs worldwide. Premium designs, custom printing, and fast delivery.",
+    icons: {
+        icon: "/icon-reduced.png",
+    },
 };
 
 export default function RootLayout({

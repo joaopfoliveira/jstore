@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    login: (password: string) => boolean;
+    login: (password: string) => Promise<boolean>;
     logout: () => void;
 }
 
@@ -24,7 +24,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const login = (password: string): boolean => {
+    const login = async (password: string): Promise<boolean> => {
+        // Small delay to prevent brute force and provide better UX
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         if (password === ADMIN_PASSWORD) {
             setIsAuthenticated(true);
             localStorage.setItem("jstore_admin_auth", "true");

@@ -1,114 +1,335 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { useCart } from "@/app/context/CartContext";
+
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder_key"
+);
+
+type Product = {
+    id: string | number;
+    name: string;
+    image_url: string | null;
+    created_at?: string;
+};
+
 export default function Home() {
-  return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="text-center py-16 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl mb-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-6xl mb-6">⚽</div>
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            JStore Football Jerseys
-          </h1>
-          <p className="text-xl text-gray-700 mb-8 max-w-2xl mx-auto">
-            Discover high-quality football jerseys from top clubs around the world. 
-            Premium designs, custom printing, and fast delivery.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <a href="/catalog" className="btn bg-blue-600 text-white hover:bg-blue-700 text-lg px-8 py-3 font-semibold shadow-lg">
-              🛍️ Browse Catalog
-            </a>
-            <a href="/order" className="btn bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 text-lg px-8 py-3">
-              🛒 View Cart
-            </a>
-            <a href="/track" className="btn bg-white text-gray-900 hover:bg-gray-100 border border-gray-300 text-lg px-8 py-3">
-              🔍 Track Order
-            </a>
-          </div>
-        </div>
-      </section>
+    const [query, setQuery] = useState("");
+    const debouncedQuery = useDebounce(query, 300);
+    const [totalCount, setTotalCount] = useState(0);
 
-      {/* Features Section */}
-      <section className="mb-16">
-        <h2 className="text-3xl font-bold text-center mb-12 text-gray-500">Why Choose JStore?</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="text-center p-6 rounded-xl bg-white border border-gray-300 hover:shadow-lg transition-shadow">
-            <div className="text-4xl mb-4">🏆</div>
-            <h3 className="text-xl font-semibold mb-3 text-gray-900">Premium Quality</h3>
-            <p className="text-gray-800">
-              High-quality jerseys made with premium materials. 
-              Durable construction that lasts season after season.
-            </p>
-          </div>
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-          <div className="text-center p-6 rounded-xl bg-white border border-gray-300 hover:shadow-lg transition-shadow">
-            <div className="text-4xl mb-4">🎨</div>
-            <h3 className="text-xl font-semibold mb-3 text-gray-900">Custom Printing</h3>
-            <p className="text-gray-800">
-              Personalize your jersey with any name and number. 
-              Professional heat-pressed printing that won't fade or peel.
-            </p>
-          </div>
+    // Image modal state
+    const [modalImage, setModalImage] = useState<{url: string, alt: string} | null>(null);
 
-          <div className="text-center p-6 rounded-xl bg-white border border-gray-300 hover:shadow-lg transition-shadow">
-            <div className="text-4xl mb-4">🚚</div>
-            <h3 className="text-xl font-semibold mb-3 text-gray-900">Fast Delivery</h3>
-            <p className="text-gray-800">
-              Quick processing and reliable shipping. 
-              Track your order from confirmation to delivery.
-            </p>
-          </div>
-        </div>
-      </section>
+    // Pagination
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 24;
 
-      {/* How It Works */}
-      <section className="mb-16">
-        <h2 className="text-3xl font-bold text-center mb-12 text-gray-500">How It Works</h2>
-        <div className="grid md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">1️⃣</span>
+    // Reset to page 1 whenever search changes
+    useEffect(() => setPage(1), [debouncedQuery]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchProducts = async () => {
+            setLoading(true);
+            setErrorMsg(null);
+
+            const from = (page - 1) * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+
+            let q;
+            if (debouncedQuery.trim() !== "") {
+                q = supabase
+                    .from("products")
+                    .select("*", { count: "exact" })
+                    .ilike("name", `%${debouncedQuery}%`)
+                    .order("created_at", { ascending: true })
+                    .range(from, to);
+            } else {
+                q = supabase
+                    .from("products")
+                    .select("*", { count: "exact" })
+                    .order("created_at", { ascending: true })
+                    .range(from, to);
+            }
+
+            const { data, error, count } = await q;
+
+            console.log(
+                "DEBUG page", page, "from", from, "to", to,
+                "count", count, "rows", data?.length
+            );
+
+            if (!cancelled) {
+                if (error) setErrorMsg(error.message);
+                setProducts(data || []);
+                setTotalCount(count || 0);
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+        return () => {
+            cancelled = true;
+        };
+    }, [debouncedQuery, page]);
+
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+    const clearSearch = () => setQuery("");
+    const { addItem } = useCart();
+
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setModalImage(null);
+            }
+        };
+        
+        if (modalImage) {
+            document.addEventListener('keydown', handleEsc);
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        
+        return () => {
+            document.removeEventListener('keydown', handleEsc);
+            document.body.style.overflow = 'unset';
+        };
+    }, [modalImage]);
+
+    return (
+        <div className="space-y-4">
+
+
+            <div className="flex gap-2 items-center">
+                <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search (e.g.: Real Madrid 14/15)"
+                    className="input flex-1"
+                />
+                {query && (
+                    <button
+                        type="button"
+                        onClick={clearSearch}
+                        className="btn"
+                        aria-label="Clear search"
+                        title="Clear search"
+                    >
+                        Clear
+                    </button>
+                )}
             </div>
-            <h3 className="font-semibold mb-2 text-gray-700">Browse</h3>
-            <p className="text-sm text-gray-600">Explore our extensive catalog of football jerseys</p>
-          </div>
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">2️⃣</span>
-            </div>
-            <h3 className="font-semibold mb-2 text-gray-700">Customize</h3>
-            <p className="text-sm text-gray-600">Choose size, add custom name and number</p>
-          </div>
+            {loading && <p className="small">Searching…</p>}
+            {errorMsg && <p className="small text-red-400">Error: {errorMsg}</p>}
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">3️⃣</span>
-            </div>
-            <h3 className="font-semibold mb-2 text-gray-700">Order</h3>
-            <p className="text-sm text-gray-600">Add to cart and place your secure order</p>
-          </div>
+            {/* Results */}
+            <div className="grid grid-cols-1 gap-4">
+                {products.map((p) => {
+                    const proxied = `/api/img?url=${encodeURIComponent(p.image_url!)}`;
 
-          <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">4️⃣</span>
+                    return (
+                        <div key={p.id} className="card">
+                            {p.image_url && (
+                                <img
+                                    src={proxied}
+                                    alt={p.name}
+                                    className="w-full h-56 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    onClick={() => setModalImage({url: proxied, alt: p.name})}
+                                    title="Click to view full size"
+                                />
+                            )}
+                            <div className="mt-3">
+                                <div className="h2">{p.name}</div>
+                                <button
+                                    className="btn btn-primary mt-2"
+                                    onClick={() =>
+                                        addItem({
+                                            product_id: p.id.toString(),
+                                            product_name: p.name,
+                                            size: "M",   // default, can ask later
+                                            print: false,
+                                        })
+                                    }
+                                >
+                                    Add to Cart
+                                </button>
+                            </div>
+
+                        </div>
+                    );
+                })}
             </div>
-            <h3 className="font-semibold mb-2 text-gray-700">Receive</h3>
-            <p className="text-sm text-gray-600">Get your jersey delivered and track your order</p>
-          </div>
+
+            {!loading && products.length === 0 && (
+                <div className="text-center py-8">
+                    <p className="small mb-4">No results found.</p>
+                    <a href="/custom-order" className="btn bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md transition-all duration-200">
+                        Request Custom Product
+                    </a>
+                </div>
+            )}
+
+            {/* Custom Order CTA - Always visible */}
+            <div className="card p-6 bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+                <div className="text-center">
+                    <h3 className="text-lg font-semibold text-orange-800 mb-2">
+                        Can't find what you're looking for?
+                    </h3>
+                    <p className="text-orange-600 mb-4">
+                        Request any sports product and we'll try to source it for you!
+                    </p>
+                    <a 
+                        href="/custom-order" 
+                        className="btn bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md transition-all duration-200"
+                    >
+                        Make Custom Request
+                    </a>
+                </div>
+            </div>
+
+            {/* Pagination */}
+            {products.length > 0 && (
+                <Pagination
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
+            )}
+
+            {/* Image Modal */}
+            {modalImage && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                    onClick={() => setModalImage(null)}
+                >
+                    <div className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center">
+                        {/* Close button */}
+                        <button
+                            onClick={() => setModalImage(null)}
+                            className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-colors"
+                            title="Close (ESC)"
+                        >
+                            ✕
+                        </button>
+                        
+                        {/* Image */}
+                        <img
+                            src={modalImage.url}
+                            alt={modalImage.alt}
+                            className="max-w-full max-h-full object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        
+                        {/* Image title */}
+                        <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg text-center">
+                            <h3 className="font-semibold">{modalImage.alt}</h3>
+                            <p className="text-sm opacity-75 mt-1">Click outside or press ESC to close</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
-      </section>
+    );
+}
 
-      {/* CTA Section */}
-      <section className="text-center py-16 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-2xl">
-        <div className="max-w-2xl mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-4">Ready to Get Your Jersey?</h2>
-          <p className="text-lg mb-8 opacity-90">
-            Join thousands of football fans who trust JStore for their jersey needs.
-          </p>
-          <a href="/catalog" className="btn bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold">
-            🏪 Start Shopping Now
-          </a>
+/** Debounce hook */
+function useDebounce<T>(value: T, delay = 300): T {
+    const [debounced, setDebounced] = useState(value);
+    const first = useRef(true);
+
+    useEffect(() => {
+        if (first.current) {
+            first.current = false;
+            setDebounced(value);
+            return;
+        }
+        const id = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(id);
+    }, [value, delay]);
+
+    return debounced;
+}
+
+/** Simple pagination controls with compact page numbers */
+function Pagination({
+                        page,
+                        totalPages,
+                        onPageChange,
+                    }: {
+    page: number;
+    totalPages: number;
+    onPageChange: (p: number) => void;
+}) {
+    // Build a compact page list: 1 … near current … last
+    const neighbors = 1;
+    const pages: (number | "ellipsis")[] = [];
+
+    const push = (n: number | "ellipsis") => pages.push(n);
+
+    const start = Math.max(1, page - neighbors);
+    const end = Math.min(totalPages, page + neighbors);
+
+    if (1 < start) {
+        push(1);
+        if (start > 2) push("ellipsis");
+    }
+
+    for (let n = start; n <= end; n++) push(n);
+
+    if (end < totalPages) {
+        if (end < totalPages - 1) push("ellipsis");
+        push(totalPages);
+    }
+
+    return (
+        <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+                className="btn"
+                onClick={() => onPageChange(Math.max(1, page - 1))}
+                disabled={page === 1}
+            >
+                Previous
+            </button>
+
+            <div className="flex items-center gap-1">
+                {pages.map((p, idx) =>
+                    p === "ellipsis" ? (
+                        <span key={`e${idx}`} className="small px-2">…</span>
+                    ) : (
+                        <button
+                            key={p}
+                            className={`btn ${p === page ? "btn-primary" : ""}`}
+                            onClick={() => onPageChange(p)}
+                        >
+                            {p}
+                        </button>
+                    )
+                )}
+            </div>
+
+            <button
+                className="btn"
+                onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+            >
+                Next
+            </button>
         </div>
-      </section>
-    </div>
-  );
+    );
 }

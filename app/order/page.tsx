@@ -5,18 +5,26 @@ import { createClient } from "@supabase/supabase-js";
 import { useCart } from "@/app/context/CartContext";
 
 const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder_key"
 );
 
 export default function OrderPage() {
     const { items, updateItem, removeItem, clear } = useCart();
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Wait for client hydration before showing content
+    useEffect(() => {
+        setIsLoaded(true);
+    }, []);
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState("");
     const [orderCode, setOrderCode] = useState("");
+
+
 
 
 
@@ -133,6 +141,17 @@ export default function OrderPage() {
         }
     };
 
+    if (!isLoaded) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading cart...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <h1 className="h1">Shopping Cart</h1>
@@ -164,7 +183,7 @@ export default function OrderPage() {
                                     🔍 Track Order
                                 </a>
                                 <a
-                                    href="/catalog"
+                                    href="/"
                                     className="btn bg-green-600 text-white hover:bg-green-700 text-sm px-3 py-1"
                                 >
                                     🛍️ Continue Shopping
@@ -178,7 +197,7 @@ export default function OrderPage() {
             {items.length === 0 ? (
                 <div className="text-center py-8">
                     <p className="text-gray-500 mb-4">Your cart is empty</p>
-                    <a href="/catalog" className="btn btn-primary">
+                    <a href="/" className="btn btn-primary">
                         Continue Shopping
                     </a>
                 </div>

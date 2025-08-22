@@ -32,13 +32,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         try {
             const saved = localStorage.getItem("cart");
             if (saved) {
-                setItems(JSON.parse(saved));
+                const parsedItems = JSON.parse(saved);
+
+                setItems(parsedItems);
             }
         } catch (error) {
             console.error("Error loading cart from localStorage:", error);
         }
         setIsHydrated(true);
     }, []);
+
+
 
     // Save cart to localStorage whenever items change (but only after hydration)
     useEffect(() => {
@@ -63,7 +67,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         if (existingItemIndex !== -1) {
             // If item already exists, increase quantity
-
             setItems((prev) =>
                 prev.map((it, i) =>
                     i === existingItemIndex
