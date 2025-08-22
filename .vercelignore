@@ -1,0 +1,11 @@
+# Supabase Edge Functions (Deno-based, not for Vercel)
+supabase/
+
+# Development and documentation files
+EMAIL_SETUP.md
+QUICK_START_EMAIL.md
+deploy-email.sh
+
+# Environment files
+.env
+.env.example
