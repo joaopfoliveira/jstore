@@ -5,7 +5,7 @@ import ClientHeader from "./ClientHeader";
 
 export const metadata = {
     metadataBase: new URL('https://jstore.vercel.app'), // Update this with your actual domain
-    title: "JPlus Sports - Premium Sports Experience",
+    title: "JPlus",
     description: "Discover high-quality sports merchandise and premium products. Custom printing, fast delivery, and custom product requests. Your ultimate sports experience destination.",
     keywords: "sports merchandise, custom printing, premium quality, fast delivery, sports apparel, custom products",
     

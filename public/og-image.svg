@@ -22,12 +22,12 @@
   <!-- Main Content -->
   <!-- Brand Name -->
   <text x="600" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="url(#textGradient)">
-    JPlus Sports
+    JPlus
   </text>
   
   <!-- Tagline -->
   <text x="600" y="290" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#2D3748">
-    Premium Sports Experience
+    Jerseys and others
   </text>
   
   <!-- Features -->
