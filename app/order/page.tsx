@@ -116,11 +116,13 @@ export default function OrderPage() {
                 setMsg("✅ Order submitted successfully! Check your email for the order code.");
                 setOrderCode(orderCode);
                 
-                // Clear only the form fields, keep the cart and order code visible
+                // Clear form fields
                 setName("");
                 setEmail("");
                 setPhone("");
-                // Cart and order code will remain visible until user navigates away
+                
+                // Clear cart after successful checkout
+                clear();
             }
         } catch (err) {
             setMsg("❌ Unexpected error occurred.");
@@ -188,14 +190,41 @@ export default function OrderPage() {
 
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Quantity</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="10"
-                                            value={item.quantity || 1}
-                                            onChange={(e) => updateItem(idx, { quantity: parseInt(e.target.value) || 1 })}
-                                            className="input w-full"
-                                        />
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItem(idx, { 
+                                                    quantity: Math.max(1, (item.quantity || 1) - 1) 
+                                                })}
+                                                className="btn bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 p-0 flex items-center justify-center text-lg font-bold"
+                                                disabled={(item.quantity || 1) <= 1}
+                                            >
+                                                −
+                                            </button>
+                                            <input
+                                                type="text"
+                                                value={item.quantity || 1}
+                                                onChange={(e) => {
+                                                    const value = parseInt(e.target.value);
+                                                    if (!isNaN(value) && value >= 1 && value <= 10) {
+                                                        updateItem(idx, { quantity: value });
+                                                    }
+                                                }}
+                                                className="input w-16 text-center"
+                                                min="1"
+                                                max="10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItem(idx, { 
+                                                    quantity: Math.min(10, (item.quantity || 1) + 1) 
+                                                })}
+                                                className="btn bg-gray-200 hover:bg-gray-300 text-gray-700 w-8 h-8 p-0 flex items-center justify-center text-lg font-bold"
+                                                disabled={(item.quantity || 1) >= 10}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div>
