@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
 
@@ -30,7 +30,27 @@ type Order = {
     image_urls?: string;
 };
 
-export default function TrackOrderPage() {
+// Loading component for Suspense fallback
+function LoadingTrackPage() {
+    return (
+        <div className="max-w-4xl mx-auto space-y-6">
+            <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+            <div className="card p-6">
+                <div className="space-y-4">
+                    <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                    <div className="flex gap-3">
+                        <div className="flex-1 h-12 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-32 h-12 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Component that uses useSearchParams
+function TrackOrderContent() {
     const searchParams = useSearchParams();
     const [orderCode, setOrderCode] = useState("");
     const [order, setOrder] = useState<Order | null>(null);
@@ -292,5 +312,14 @@ export default function TrackOrderPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+// Main page component with Suspense boundary
+export default function TrackOrderPage() {
+    return (
+        <Suspense fallback={<LoadingTrackPage />}>
+            <TrackOrderContent />
+        </Suspense>
     );
 }
