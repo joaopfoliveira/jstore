@@ -25,6 +25,9 @@ export default function CatalogPage() {
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+    // Image modal state
+    const [modalImage, setModalImage] = useState<{url: string, alt: string} | null>(null);
+
     // Pagination
     const [page, setPage] = useState(1);
     const PAGE_SIZE = 24;
@@ -48,13 +51,13 @@ export default function CatalogPage() {
                     .from("products")
                     .select("*", { count: "exact" })
                     .ilike("name", `%${debouncedQuery}%`)
-                    .order("created_at", { ascending: false })
+                    .order("created_at", { ascending: true })
                     .range(from, to);
             } else {
                 q = supabase
                     .from("products")
                     .select("*", { count: "exact" })
-                    .order("created_at", { ascending: false })
+                    .order("created_at", { ascending: true })
                     .range(from, to);
             }
 
@@ -83,6 +86,28 @@ export default function CatalogPage() {
 
     const clearSearch = () => setQuery("");
     const { addItem } = useCart();
+
+    // Handle ESC key to close modal
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setModalImage(null);
+            }
+        };
+        
+        if (modalImage) {
+            document.addEventListener('keydown', handleEsc);
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        
+        return () => {
+            document.removeEventListener('keydown', handleEsc);
+            document.body.style.overflow = 'unset';
+        };
+    }, [modalImage]);
 
     return (
         <div className="space-y-4">
@@ -122,9 +147,11 @@ export default function CatalogPage() {
                                 <img
                                     src={proxied}
                                     alt={p.name}
-                                    className="w-full h-56 object-cover rounded-xl"
+                                    className="w-full h-56 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                                     loading="lazy"
                                     referrerPolicy="no-referrer"
+                                    onClick={() => setModalImage({url: proxied, alt: p.name})}
+                                    title="Click to view full size"
                                 />
                             )}
                             <div className="mt-3">
@@ -160,6 +187,39 @@ export default function CatalogPage() {
                     totalPages={totalPages}
                     onPageChange={setPage}
                 />
+            )}
+
+            {/* Image Modal */}
+            {modalImage && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                    onClick={() => setModalImage(null)}
+                >
+                    <div className="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center">
+                        {/* Close button */}
+                        <button
+                            onClick={() => setModalImage(null)}
+                            className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-70 transition-colors"
+                            title="Close (ESC)"
+                        >
+                            ✕
+                        </button>
+                        
+                        {/* Image */}
+                        <img
+                            src={modalImage.url}
+                            alt={modalImage.alt}
+                            className="max-w-full max-h-full object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                        
+                        {/* Image title */}
+                        <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 text-white p-3 rounded-lg text-center">
+                            <h3 className="font-semibold">{modalImage.alt}</h3>
+                            <p className="text-sm opacity-75 mt-1">Click outside or press ESC to close</p>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
