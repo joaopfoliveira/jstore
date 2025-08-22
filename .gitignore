@@ -42,3 +42,14 @@ pnpm-debug.log*
 package-lock.json
 /scripts/syncYupoo.ts
 tsconfig.scripts.json
+/supabase/.temp/cli-latest
+/supabase/config.toml
+/deploy-email.sh
+/EMAIL_SETUP.md
+/supabase/.temp/gotrue-version
+/supabase/.temp/pooler-url
+/supabase/.temp/postgres-version
+/supabase/.temp/project-ref
+/QUICK_START_EMAIL.md
+/supabase/.temp/rest-version
+/supabase/.temp/storage-version
