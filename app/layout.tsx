@@ -86,7 +86,7 @@ export default function RootLayout({
                 <AuthProvider>
                     <CartProvider>
                         <ClientHeader />
-                        <main className="container pb-24">{children}</main>
+                        <main className="container pt-8 pb-24">{children}</main>
                     </CartProvider>
                 </AuthProvider>
             </SiteAuthGuard>

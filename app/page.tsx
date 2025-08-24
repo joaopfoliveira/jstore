@@ -87,6 +87,93 @@ export default function Home() {
     const clearSearch = () => setQuery("");
     const { addItem } = useCart();
 
+    // Two different size systems that are commonly used
+    const TRADITIONAL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL'];
+    const NUMERIC_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
+    // Extract available sizes from product title
+    const extractSizesFromTitle = (productName: string): string[] => {
+        // Look for size ranges like "S-XL", "S-4XL", "M-XXL", etc.
+        const sizeRangePattern = /(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)-(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)/gi;
+        const matches = productName.match(sizeRangePattern);
+        
+        if (matches && matches.length > 0) {
+            // Take the first match and extract the range
+            const match = matches[0].toUpperCase();
+            const [startSize, endSize] = match.split('-');
+            
+            // Determine which system to use based on the end size
+            const isNumericSystem = /^\d/.test(endSize) || endSize.includes('XL') && endSize.length <= 3;
+            const isTraditionalSystem = endSize === 'XXL' || endSize === 'XXXL' || endSize === 'XXXXL';
+            
+            let sizeSystem;
+            if (isTraditionalSystem) {
+                sizeSystem = TRADITIONAL_SIZES;
+            } else if (isNumericSystem || /[2-5]XL/.test(endSize)) {
+                sizeSystem = NUMERIC_SIZES;
+            } else {
+                // Default to traditional for basic ranges like S-XL
+                sizeSystem = TRADITIONAL_SIZES;
+            }
+            
+            // Find positions in the appropriate system
+            const startIndex = sizeSystem.findIndex(size => size === startSize);
+            const endIndex = sizeSystem.findIndex(size => size === endSize);
+            
+            if (startIndex !== -1 && endIndex !== -1 && startIndex <= endIndex) {
+                // Return the range of sizes
+                return sizeSystem.slice(startIndex, endIndex + 1);
+            }
+        }
+        
+        // Look for individual sizes mentioned (like "Size S, M, L available")
+        const individualSizes = productName.match(/\b(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)\b/gi);
+        if (individualSizes && individualSizes.length > 2) {
+            // If we find multiple individual sizes, use them
+            const uniqueSizes = [...new Set(individualSizes.map(s => s.toUpperCase()))];
+            
+            // Determine which system based on what sizes we found
+            const hasNumeric = uniqueSizes.some(size => /[2-5]XL/.test(size));
+            const hasTraditional = uniqueSizes.some(size => ['XXL', 'XXXL', 'XXXXL'].includes(size));
+            
+            const referenceSystem = hasNumeric ? NUMERIC_SIZES : TRADITIONAL_SIZES;
+            
+            return uniqueSizes.sort((a, b) => {
+                const aIndex = referenceSystem.indexOf(a);
+                const bIndex = referenceSystem.indexOf(b);
+                return aIndex - bIndex;
+            });
+        }
+        
+        // Default sizes if nothing found (traditional system)
+        return ['S', 'M', 'L', 'XL', 'XXL'];
+    };
+
+    // Clean product title by removing size references
+    const cleanProductTitle = (productName: string): string => {
+        // Remove size ranges like "S-XXL", "M-4XL", etc.
+        let cleanTitle = productName.replace(/(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)-(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)/gi, '');
+        
+        // Remove individual size mentions like "Available in S, M, L" or "S,M,L,XL"
+        cleanTitle = cleanTitle.replace(/\b(?:available\s+in\s+|sizes?\s+)?(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)(?:\s*,\s*(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL))+\b/gi, '');
+        
+        // Remove size-related words/phrases
+        cleanTitle = cleanTitle.replace(/\b(available|disponível|tamanhos?|sizes?|range|faixa|available\s+in)\b/gi, '');
+        
+        // Clean up extra spaces, dashes, and punctuation
+        cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+        cleanTitle = cleanTitle.replace(/[-,\s]+$/, '').trim();
+        cleanTitle = cleanTitle.replace(/^[-,\s]+/, '').trim();
+        
+        return cleanTitle;
+    };
+
+    // Get the default size for a product (first available size)
+    const getDefaultSize = (productName: string): string => {
+        const availableSizes = extractSizesFromTitle(productName);
+        return availableSizes[0] || 'M';
+    };
+
     // Handle ESC key to close modal
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -155,20 +242,24 @@ export default function Home() {
                                 />
                             )}
                             <div className="mt-3">
-                                <div className="h2">{p.name}</div>
-                                <button
-                                    className="btn btn-primary mt-2"
-                                    onClick={() =>
-                                        addItem({
-                                            product_id: p.id.toString(),
-                                            product_name: p.name,
-                                            size: "M",   // default, can ask later
-                                            print: false,
-                                        })
-                                    }
-                                >
-                                    Add to Cart
-                                </button>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="h2 flex-1">{p.name}</div>
+                                    <button
+                                        className="btn bg-white border-2 border-blue-500 text-blue-600 hover:bg-blue-50 flex-shrink-0 px-3 py-2 shadow-sm"
+                                        onClick={() =>
+                                            addItem({
+                                                product_id: p.id.toString(),
+                                                product_name: p.name,
+                                                size: getDefaultSize(p.name),   // dynamic default based on title
+                                                print: false,
+                                            })
+                                        }
+                                        title="Add to Cart"
+                                        aria-label="Add to Cart"
+                                    >
+                                        🛒
+                                    </button>
+                                </div>
                             </div>
 
                         </div>

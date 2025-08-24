@@ -9,6 +9,87 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder_key"
 );
 
+// Two different size systems that are commonly used
+const TRADITIONAL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL'];
+const NUMERIC_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
+// Extract available sizes from product title
+function extractSizesFromTitle(productName: string): string[] {
+    // Look for size ranges like "S-XL", "S-4XL", "M-XXL", etc.
+    const sizeRangePattern = /(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)-(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)/gi;
+    const matches = productName.match(sizeRangePattern);
+    
+    if (matches && matches.length > 0) {
+        // Take the first match and extract the range
+        const match = matches[0].toUpperCase();
+        const [startSize, endSize] = match.split('-');
+        
+        // Determine which system to use based on the end size
+        const isNumericSystem = /^\d/.test(endSize) || endSize.includes('XL') && endSize.length <= 3;
+        const isTraditionalSystem = endSize === 'XXL' || endSize === 'XXXL' || endSize === 'XXXXL';
+        
+        let sizeSystem;
+        if (isTraditionalSystem) {
+            sizeSystem = TRADITIONAL_SIZES;
+        } else if (isNumericSystem || /[2-5]XL/.test(endSize)) {
+            sizeSystem = NUMERIC_SIZES;
+        } else {
+            // Default to traditional for basic ranges like S-XL
+            sizeSystem = TRADITIONAL_SIZES;
+        }
+        
+        // Find positions in the appropriate system
+        const startIndex = sizeSystem.findIndex(size => size === startSize);
+        const endIndex = sizeSystem.findIndex(size => size === endSize);
+        
+        if (startIndex !== -1 && endIndex !== -1 && startIndex <= endIndex) {
+            // Return the range of sizes
+            return sizeSystem.slice(startIndex, endIndex + 1);
+        }
+    }
+    
+    // Look for individual sizes mentioned (like "Size S, M, L available")
+    const individualSizes = productName.match(/\b(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)\b/gi);
+    if (individualSizes && individualSizes.length > 2) {
+        // If we find multiple individual sizes, use them
+        const uniqueSizes = [...new Set(individualSizes.map(s => s.toUpperCase()))];
+        
+        // Determine which system based on what sizes we found
+        const hasNumeric = uniqueSizes.some(size => /[2-5]XL/.test(size));
+        const hasTraditional = uniqueSizes.some(size => ['XXL', 'XXXL', 'XXXXL'].includes(size));
+        
+        const referenceSystem = hasNumeric ? NUMERIC_SIZES : TRADITIONAL_SIZES;
+        
+        return uniqueSizes.sort((a, b) => {
+            const aIndex = referenceSystem.indexOf(a);
+            const bIndex = referenceSystem.indexOf(b);
+            return aIndex - bIndex;
+        });
+    }
+    
+    // Default sizes if nothing found (traditional system)
+    return ['S', 'M', 'L', 'XL', 'XXL'];
+}
+
+// Clean product title by removing size references
+function cleanProductTitle(productName: string): string {
+    // Remove size ranges like "S-XXL", "M-4XL", etc.
+    let cleanTitle = productName.replace(/(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)-(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)/gi, '');
+    
+    // Remove individual size mentions like "Available in S, M, L" or "S,M,L,XL"
+    cleanTitle = cleanTitle.replace(/\b(?:available\s+in\s+|sizes?\s+)?(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)(?:\s*,\s*(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL))+\b/gi, '');
+    
+    // Remove size-related words/phrases
+    cleanTitle = cleanTitle.replace(/\b(available|disponível|tamanhos?|sizes?|range|faixa|available\s+in)\b/gi, '');
+    
+    // Clean up extra spaces, dashes, and punctuation
+    cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+    cleanTitle = cleanTitle.replace(/[-,\s]+$/, '').trim();
+    cleanTitle = cleanTitle.replace(/^[-,\s]+/, '').trim();
+    
+    return cleanTitle;
+}
+
 export default function OrderPage() {
     const { items, updateItem, removeItem, clear } = useCart();
     const [isLoaded, setIsLoaded] = useState(false);
@@ -17,6 +98,18 @@ export default function OrderPage() {
     useEffect(() => {
         setIsLoaded(true);
     }, []);
+
+    // Auto-correct invalid sizes when items change
+    useEffect(() => {
+        if (isLoaded) {
+            items.forEach((item, idx) => {
+                const availableSizes = extractSizesFromTitle(item.product_name);
+                if (!availableSizes.includes(item.size)) {
+                    updateItem(idx, { size: availableSizes[0] });
+                }
+            });
+        }
+    }, [isLoaded, items.length]); // Only run when items count changes or becomes loaded
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -238,11 +331,13 @@ export default function OrderPage() {
                                             onChange={(e) => updateItem(idx, { size: e.target.value })}
                                             className="input w-full"
                                         >
-                                            <option value="S">S</option>
-                                            <option value="M">M</option>
-                                            <option value="L">L</option>
-                                            <option value="XL">XL</option>
+                                            {extractSizesFromTitle(item.product_name).map(size => (
+                                                <option key={size} value={size}>{size}</option>
+                                            ))}
                                         </select>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Available sizes: {extractSizesFromTitle(item.product_name).join(', ')}
+                                        </p>
                                     </div>
 
                                     <div>

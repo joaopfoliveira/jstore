@@ -30,9 +30,10 @@ export default function ClientHeader() {
                     </div>
                     
                     {/* Navigation */}
-                    <div className="flex gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        {/* Primary Actions */}
                         <a 
-                            className={`btn transition-all duration-200 ${
+                            className={`btn text-sm px-4 py-2 transition-all duration-200 ${
                                 pathname === '/'
                                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
                                     : 'bg-white text-gray-700 hover:bg-blue-50 border border-blue-200'
@@ -41,33 +42,52 @@ export default function ClientHeader() {
                         >
                             Catalog
                         </a>
+                        
+                        {/* Icon-only buttons */}
                         <a 
-                            className={`btn transition-all duration-200 relative ${
+                            className={`btn p-3 transition-all duration-200 relative ${
                                 pathname === '/order' 
                                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
                                     : 'bg-white text-gray-700 hover:bg-blue-50 border border-blue-200'
                             }`} 
                             href="/order"
+                            title="Shopping Cart"
                         >
-                            Cart
+                            🛒
                             {cartItemCount > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-bold shadow-lg">
+                                <span className="absolute -top-1 -right-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-bold shadow-lg">
                                     {cartItemCount}
                                 </span>
                             )}
                         </a>
+                        
                         <a 
-                            className={`btn transition-all duration-200 ${
+                            className={`btn p-3 transition-all duration-200 ${
                                 pathname === '/track' 
                                     ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
                                     : 'bg-white text-gray-700 hover:bg-blue-50 border border-blue-200'
                             }`} 
                             href="/track"
+                            title="Track Order"
                         >
-                            Track
+                            📦
                         </a>
+                        
                         <a 
-                            className={`btn transition-all duration-200 ${
+                            className={`btn p-3 transition-all duration-200 ${
+                                pathname === '/pricing' 
+                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
+                                    : 'bg-white text-gray-700 hover:bg-blue-50 border border-blue-200'
+                            }`} 
+                            href="/pricing"
+                            title="Pricing"
+                        >
+                            💰
+                        </a>
+                        
+                        {/* Custom CTA */}
+                        <a 
+                            className={`btn text-sm px-4 py-2 transition-all duration-200 ${
                                 pathname === '/custom-order'
                                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md'
                                     : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 shadow-md'
@@ -81,7 +101,7 @@ export default function ClientHeader() {
                         {/* Logout button */}
                         <button 
                             onClick={handleLogout}
-                            className="text-gray-500 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-all duration-200"
+                            className="text-gray-500 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-all duration-200 ml-2"
                             title="Logout from site"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

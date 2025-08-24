@@ -30,6 +30,25 @@ type Order = {
     image_urls?: string;
 };
 
+// Clean product title by removing size references
+function cleanProductTitle(productName: string): string {
+    // Remove size ranges like "S-XXL", "M-4XL", etc.
+    let cleanTitle = productName.replace(/(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)-(XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)/gi, '');
+    
+    // Remove individual size mentions like "Available in S, M, L" or "S,M,L,XL"
+    cleanTitle = cleanTitle.replace(/\b(?:available\s+in\s+|sizes?\s+)?(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL)(?:\s*,\s*(?:XS|S|M|L|XL|XXL|XXXL|XXXXL|2XL|3XL|4XL|5XL))+\b/gi, '');
+    
+    // Remove size-related words/phrases
+    cleanTitle = cleanTitle.replace(/\b(available|disponível|tamanhos?|sizes?|range|faixa|available\s+in)\b/gi, '');
+    
+    // Clean up extra spaces, dashes, and punctuation
+    cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+    cleanTitle = cleanTitle.replace(/[-,\s]+$/, '').trim();
+    cleanTitle = cleanTitle.replace(/^[-,\s]+/, '').trim();
+    
+    return cleanTitle;
+}
+
 // Loading component for Suspense fallback
 function LoadingTrackPage() {
     return (
