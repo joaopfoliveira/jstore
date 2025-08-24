@@ -2,11 +2,19 @@
 
 import { useCart } from "./context/CartContext";
 import { usePathname } from "next/navigation";
+import { useSiteAuth } from "./context/SiteAuthContext";
 
 export default function ClientHeader() {
     const { getTotalItems } = useCart();
     const pathname = usePathname();
+    const { logout } = useSiteAuth();
     const cartItemCount = getTotalItems();
+
+    const handleLogout = () => {
+        if (confirm("Are you sure you want to logout from the site?")) {
+            logout();
+        }
+    };
 
     return (
         <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 sticky top-0 z-50 shadow-sm">
@@ -69,6 +77,17 @@ export default function ClientHeader() {
                         >
                             Custom
                         </a>
+                        
+                        {/* Logout button */}
+                        <button 
+                            onClick={handleLogout}
+                            className="text-gray-500 hover:text-red-600 p-2 rounded-full hover:bg-red-50 transition-all duration-200"
+                            title="Logout from site"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
                     </div>
                 </nav>
             </div>

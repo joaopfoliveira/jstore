@@ -1,7 +1,9 @@
 import "./globals.css";
 import { CartProvider } from "./context/CartContext";
 import { AuthProvider } from "./context/AuthContext";
+import { SiteAuthProvider } from "./context/SiteAuthContext";
 import ClientHeader from "./ClientHeader";
+import SiteAuthGuard from "./components/SiteAuthGuard";
 
 export const metadata = {
     metadataBase: new URL('https://jstore.vercel.app'), // Update this with your actual domain
@@ -79,12 +81,16 @@ export default function RootLayout({
     return (
         <html lang="pt">
         <body>
-        <AuthProvider>
-            <CartProvider>
-                <ClientHeader />
-                <main className="container pb-24">{children}</main>
-            </CartProvider>
-        </AuthProvider>
+        <SiteAuthProvider>
+            <SiteAuthGuard>
+                <AuthProvider>
+                    <CartProvider>
+                        <ClientHeader />
+                        <main className="container pb-24">{children}</main>
+                    </CartProvider>
+                </AuthProvider>
+            </SiteAuthGuard>
+        </SiteAuthProvider>
         </body>
         </html>
     );
